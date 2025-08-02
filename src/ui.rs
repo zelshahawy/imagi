@@ -1,29 +1,6 @@
 use crate::app::BatchApp;
-use eframe::egui::{self, Context};
+use eframe::egui::{self, Context, Direction, Label, Layout, Vec2};
 use rfd::FileDialog;
-
-impl BatchApp {
-    /// (Re)load image paths from the selected input directory
-    pub fn load_images(&mut self) {
-        self.images.clear();
-        if let Some(ref dir) = self.input_dir {
-            for entry in walkdir::WalkDir::new(dir) {
-                if let Ok(entry) = entry {
-                    let path = entry.path();
-                    if path.is_file() {
-                        if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-                            let ext = ext.to_lowercase();
-                            if ["png", "jpg", "jpeg", "bmp", "gif", "tiff"].contains(&ext.as_str())
-                            {
-                                self.images.push(path.to_path_buf());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 pub fn show(app: &mut BatchApp, ctx: &Context) {
     egui::CentralPanel::default().show(ctx, |ui| {
@@ -34,19 +11,38 @@ pub fn show(app: &mut BatchApp, ctx: &Context) {
                     app.load_images();
                 }
             }
-            if let Some(ref dir) = app.input_dir {
-                ui.label(dir.display().to_string());
-            } else {
-                ui.label("No folder selected");
+            if app.input_dir.is_some() {
+                ui.label(format!("{} images", app.images.len()));
             }
         });
 
         ui.separator();
-        ui.label("Discovered images:");
+
+        let card_size = Vec2::splat(100.0);
+        let columns = 5;
         egui::ScrollArea::vertical().show(ui, |ui| {
-            for path in &app.images {
-                ui.label(path.file_name().unwrap().to_string_lossy());
-            }
+            egui::Grid::new("image_grid")
+                .striped(true)
+                .spacing([8.0, 8.0])
+                .show(ui, |ui| {
+                    for (i, path) in app.images.iter().enumerate() {
+                        ui.vertical_centered(|ui| {
+                            ui.checkbox(&mut app.selected[i], "");
+                            ui.allocate_ui_with_layout(
+                                card_size,
+                                Layout::centered_and_justified(Direction::TopDown),
+                                |ui| {
+                                    let name =
+                                        path.file_name().unwrap().to_string_lossy().to_string();
+                                    ui.add(Label::new(name).wrap());
+                                },
+                            );
+                        });
+                        if i % columns == columns - 1 {
+                            ui.end_row();
+                        }
+                    }
+                });
         });
     });
 }
