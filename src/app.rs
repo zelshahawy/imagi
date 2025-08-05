@@ -20,7 +20,6 @@ impl Default for BatchApp {
 }
 
 impl BatchApp {
-    /// (Re)load image paths and reset selection
     pub fn load_images(&mut self) {
         self.images.clear();
         if let Some(ref dir) = self.input_dir {
@@ -39,7 +38,6 @@ impl BatchApp {
                 }
             }
         }
-        // initialize selection to true for all images
         self.selected = vec![true; self.images.len()];
     }
 }
